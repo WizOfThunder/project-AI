@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { NODES, CONNECTIONS, GRID_SIZE, DIRECTIONS, adjacencyList, SAVE_KEY, INITIAL_STATE } from '@/lib/constants';
-import { isValidSquareStart, getSquareIndices, indicesAreValid, getPossibleMoves, minimax } from '@/lib/gameLogic';
+import { isValidSquareStart, getSquareIndices, indicesAreValid } from '@/lib/gameLogic';
 import { Node } from './Node';
 import { GameInfo } from './GameInfo';
 import { useRouter } from 'next/navigation';
 import { ResumeNotification } from './ResumeNotification';
+import { getPossibleMoves, minimax } from '@/lib/AILogic';
 
 export const GameBoard = () => {
   const [boardState, setBoardState] = useState(Array(NODES.length).fill(null));
@@ -42,11 +43,11 @@ export const GameBoard = () => {
 
   useEffect(() => {
     // Check Macan win condition
-    const uwongPiecesExist = boardState.some(piece => piece === 'uwong');
-    if (!uwongPiecesExist && uwongPiecesRemaining === 0) {
+    const totalUwongPieces = boardState.filter(piece => piece === 'uwong').length + uwongPiecesRemaining;
+    if (totalUwongPieces < 14) {
       setWinner('macan');
     }
-  }, [boardState]);
+  }, [boardState, uwongPiecesRemaining]);
 
   useEffect(() => {
     // Check Uwong win condition (only when it's Macan's turn)
