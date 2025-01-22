@@ -64,38 +64,56 @@ body {
 }
 
 .node-default {
-  background: #90EE90;
+  background-image: url('../../public/assets/grass_circle.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center; 
+  /* background: #90EE90; */
 }
 
 .node-uwong {
-  background: #3b82f6;
+  /* background: #3b82f6; */
+  background-image: url('../../public/assets/uwong_circle.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center; 
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
 }
 
 .node-macan {
-  background: #ef4444;
+  /* background: #ef4444; */
+  background-image: url('../../public/assets/tiger_circle.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center; 
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
   z-index: 3;
 }
 
 .node-size20 {
-  width: 20px;
-  height: 20px;
+  width: 40px;
+  height: 40px;
 }
 
 .node-size30 {
-  width: 30px;
-  height: 30px;
+  width: 70px;
+  height: 70px;
 }
 
 /* Connection Lines */
 .line {
+  background-image: url('../../public/assets/pathway.png');
+  background-size: contain;
+  background-repeat: repeat;
+  background-position: center; 
   position: absolute;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.3);
-  transform-origin: 0 0;
+  height: 5px;
+  width: 100%;
+  /* background: rgba(255, 255, 255, 0.3); */
+  transform-origin: 1.5 1.5;
   z-index: 1;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease;
+  transform: rotate(90deg);
 }
 
 .line:hover {
