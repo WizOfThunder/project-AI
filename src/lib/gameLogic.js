@@ -1,3 +1,4 @@
+import { memoize } from "./AILogic";
 import { adjacencyList, DIRECTIONS, NODES } from "./constants";
 
 export const createAdjacencyList = (nodes, connections) => {
@@ -9,14 +10,14 @@ export const createAdjacencyList = (nodes, connections) => {
   return list;
 };
 
-
-export const isValidSquareStart = (index, gridSize) => {
+export const isValidSquareStart = memoize((index, gridSize) => {
   const row = Math.floor(index / gridSize);
   const col = index % gridSize;
   return row >= 1 && row <= gridSize - 2 && col >= 1 && col <= gridSize - 2;
-};
+});
 
-export const getSquareIndices = (index, gridSize) => {
+
+export const getSquareIndices = memoize((index, gridSize) => {
   const indices = [];
   const centerRow = Math.floor(index / gridSize);
   const centerCol = index % gridSize;
@@ -31,7 +32,7 @@ export const getSquareIndices = (index, gridSize) => {
     }
   }
   return indices;
-};
+});
 
 export const indicesAreValid = (indices, boardState, gridSize) => {
   return indices.some(i => isValidSquareStart(i, gridSize) && boardState[i] === null);

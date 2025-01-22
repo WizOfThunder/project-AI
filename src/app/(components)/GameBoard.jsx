@@ -7,7 +7,7 @@ import { Node } from './Node';
 import { GameInfo } from './GameInfo';
 import { useRouter } from 'next/navigation';
 import { ResumeNotification } from './ResumeNotification';
-import { getPossibleMoves, minimax } from '@/lib/AILogic';
+import { getMacanMoves, minimax } from '@/lib/AILogic';
 
 export const GameBoard = () => {
   const [boardState, setBoardState] = useState(Array(NODES.length).fill(null));
@@ -24,22 +24,24 @@ export const GameBoard = () => {
   const router = useRouter();
 
   useEffect(() => {
-    if (turn === 'uwong' && isFirstUwongTurn) {
-      const validIndices = highlightedSquareIndices.filter(index =>
-        isValidSquareStart(index, GRID_SIZE)
-      );
-      setHighlightedSquareIndices(validIndices);
-    } else if (turn === 'uwong' && uwongPiecesRemaining === 0) {
-      if (selectedUwongPiece !== null) {
-        // Highlight adjacent empty nodes for selected piece
-        const moves = adjacencyList[selectedUwongPiece].filter(i => boardState[i] === null);
-        setHighlightedSquareIndices(moves);
-      } else {
-        setHighlightedSquareIndices([]);
+    if (turn === 'uwong') {
+      if (isFirstUwongTurn) {
+        const validIndices = highlightedSquareIndices.filter(index =>
+          isValidSquareStart(index, GRID_SIZE)
+        );
+        setHighlightedSquareIndices(validIndices);
+      } else if (uwongPiecesRemaining === 0) {
+        if (selectedUwongPiece !== null) {
+          // Highlight adjacent empty nodes for selected piece
+          const moves = adjacencyList[selectedUwongPiece].filter(i => boardState[i] === null);
+          setHighlightedSquareIndices(moves);
+        } else {
+          setHighlightedSquareIndices([]);
+        }
       }
     }
 
-  }, []);
+  }, [turn, isFirstUwongTurn, uwongPiecesRemaining, boardState]);
 
   useEffect(() => {
     // Check Macan win condition
@@ -176,7 +178,6 @@ export const GameBoard = () => {
 
   const tryMacanJump = (targetIndex) => {
     if (macanPosition === null || boardState[targetIndex] !== null) return;
-    console.log(NODES[0])
     // Improved direction functions that match original game connections
 
     let bestJump = {
@@ -187,17 +188,13 @@ export const GameBoard = () => {
 
     // Check all possible directions
     DIRECTIONS.forEach(dirFn => {
-      console.log("switching direction");
-
       let current = macanPosition;
       const path = [];
       let captured = 0;
 
       while (true) {
         const next = dirFn(current);
-        console.log('Checking direction from', current, 'potential next:', dirFn(current));
 
-        console.log(next);
         if (next === undefined || next === null || next === false || next < 0) break;
 
         // Check if next node has an Uwong piece
@@ -205,7 +202,6 @@ export const GameBoard = () => {
           captured++;
           path.push(next);
           current = next;
-          console.log("captured" + next);
         }
         // Check if we can land on an empty space after capturing
         else if (boardState[next] === null && captured > 0) {
@@ -221,8 +217,6 @@ export const GameBoard = () => {
         }
       }
     });
-
-    console.log(bestJump);
 
     if (bestJump.captured > 0) {
       const newBoardState = [...boardState];
@@ -360,82 +354,75 @@ export const GameBoard = () => {
     }
   };
 
+  const executeMove = (bestMove) => {
+    const newBoardState = [...boardState];
+    let newMacanPosition = macanPosition;
+    if (macanPosition === null) {
+      newBoardState[bestMove.to] = 'macan';
+      newMacanPosition = bestMove.to;
+    } else {
+      newBoardState[macanPosition] = null;
+      newBoardState[bestMove.to] = 'macan';
+      if (bestMove.type === 'jump') {
+        bestMove.path.forEach(i => newBoardState[i] = null);
+      }
+      newMacanPosition = bestMove.to;
+    }
+  
+    setBoardState(newBoardState);
+    setMacanPosition(newMacanPosition);
+  };
+  
+
   const makeAIMove = () => {
-    const possibleMoves = getPossibleMoves(boardState, macanPosition);
+    const possibleMoves = getMacanMoves(boardState, macanPosition);
     let bestValue = -Infinity;
     let bestMove = null;
-
-    // Evaluate all possible moves
-    possibleMoves.forEach(move => {
+  
+    possibleMoves.forEach((move, index) => {
       const newBoard = [...boardState];
       let newMacanPosition = macanPosition;
-
-      // Update board state for the move
+  
       if (macanPosition === null) {
-        // Simulate initial placement
         newBoard[move.to] = 'macan';
         newMacanPosition = move.to;
       } else if (move.type === 'jump') {
         move.path.forEach(i => newBoard[i] = null);
       }
-
+  
       newBoard[macanPosition] = null;
       newBoard[newMacanPosition] = 'macan';
-
-      const moveValue = minimax(newBoard, newMacanPosition, 3, -Infinity, Infinity, false);
-
+  
+      // Pass required parameters to minimax
+      const moveValue = minimax(
+        newBoard,
+        newMacanPosition,
+        uwongPiecesRemaining,    // From component state
+        isFirstUwongTurn,        // From component state
+        5,                       // Depth
+        -Infinity,
+        Infinity,
+        false
+      );
+  
       if (moveValue > bestValue) {
         bestValue = moveValue;
         bestMove = move;
+      } else if (index == 0) {
+        bestMove = move;
       }
-
     });
-
+    
     // Execute the best move
     if (bestMove) {
-      if (macanPosition === null) {
-        // Handle initial placement
-        const newBoardState = [...boardState];
-        newBoardState[bestMove.to] = 'macan';
-        setHistory(prev => [...prev, {
-          board: boardState,
-          macanPos: macanPosition,
-          uwongPieces: uwongPiecesRemaining,
-          turn: turn,
-          isFirst: isFirstUwongTurn
-        }]);
-        setBoardState(newBoardState);
-        setMacanPosition(bestMove.to);
-      } else if (bestMove.type === 'jump') {
-        // Handle jump move
-        const newBoardState = [...boardState];
-        bestMove.path.forEach(i => newBoardState[i] = null);
-        newBoardState[macanPosition] = null;
-        newBoardState[bestMove.to] = 'macan';
-        setHistory(prev => [...prev, {
-          board: boardState,
-          macanPos: macanPosition,
-          uwongPieces: uwongPiecesRemaining,
-          turn: turn,
-          isFirst: isFirstUwongTurn
-        }]);
-        setBoardState(newBoardState);
-        setMacanPosition(bestMove.to);
-      } else {
-        // Handle regular move
-        const newBoardState = [...boardState];
-        newBoardState[macanPosition] = null;
-        newBoardState[bestMove.to] = 'macan';
-        setHistory(prev => [...prev, {
-          board: boardState,
-          macanPos: macanPosition,
-          uwongPieces: uwongPiecesRemaining,
-          turn: turn,
-          isFirst: isFirstUwongTurn
-        }]);
-        setBoardState(newBoardState);
-        setMacanPosition(bestMove.to);
-      }
+      executeMove(bestMove);
+      setHistory(prev => [...prev, {
+        board: boardState,
+        macanPos: macanPosition,
+        uwongPieces: uwongPiecesRemaining,
+        turn: turn,
+        isFirst: isFirstUwongTurn
+      }]);
       switchTurn(0);
     }
   };
