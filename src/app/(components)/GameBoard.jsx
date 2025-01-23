@@ -553,7 +553,6 @@ export const GameBoard = () => {
   return (
     <div className="game-container">
       <ResumeNotification />
-
       {showQuitConfirm && (
         <div className="confirmation-overlay">
           <div className="confirmation-modal">
