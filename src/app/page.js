@@ -2,6 +2,7 @@
 import { SAVE_KEY } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Image from 'next/image';
 
 export default function StartMenu() {
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function StartMenu() {
       <div
         className="bg-green-900/40 backdrop-blur-sm"
         style={{
-          padding: "30vh 30vw",
+          padding: "25vh 25vw",
           borderRadius: "1%",
           background:
             "linear-gradient(120deg, rgba(22, 101, 52, 0.6), rgba(20, 83, 45, 0.4))",
@@ -62,28 +63,35 @@ export default function StartMenu() {
           backdropFilter: "blur(8px)",
         }}
       >
-        <h1 className="text-4xl font-bold mb-8">Macanan</h1>
+
+        <Image
+          src="/assets/macanan_logo.png"
+          alt="Logo"
+          width={150}
+          height={150}
+          style={{ borderRadius: '10px', margin: '10px' }}
+        />
 
         {/* Main Menu Buttons */}
         <div className="flex flex-col gap-4">
-          <button
-            onClick={handlePlay}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all"
-          >
-            Play
-          </button>
-          <button
-            onClick={handleLeaderboard}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-all"
-          >
-            Leaderboard
-          </button>
-          <button
+        <button
+          onClick={handlePlay}
+          className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-2 px-4 rounded border-4 border-blue-700 transition-all"
+        >
+          Play
+        </button>
+        <button
+          onClick={handleLeaderboard}
+          className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-2 px-4 rounded border-4 border-green-700 transition-all"
+        >
+          History
+        </button>
+          {/* <button
             onClick={handleExit}
             className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-all"
           >
             Exit
-          </button>
+          </button> */}
         </div>
 
         {/* Resume Dialog */}
@@ -97,15 +105,15 @@ export default function StartMenu() {
               </p>
 
               <div className="flex gap-4 justify-end">
-                <button
+              <button
                   onClick={handleNewGame}
-                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-all"
+                  className="bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-2 px-4 rounded border-2 border-red-700 transition-all"
                 >
                   New Game
                 </button>
                 <button
                   onClick={handleResume}
-                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-all"
+                  className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-2 px-4 rounded border-2 border-green-700 transition-all"
                 >
                   Resume
                 </button>

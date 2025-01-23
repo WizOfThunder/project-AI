@@ -36,14 +36,19 @@ body {
   justify-content: center;
   align-items: center;
   overflow: hidden;
+
+  background-image: url('../../public/assets/game_background.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center; 
 }
 
 .network {
   position: absolute;
-  top: 50%;
+  top: 60%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 90vmin;
+  width: 101vmin;
   height: 90vmin;
   max-width: 800px;
   max-height: 800px;
