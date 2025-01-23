@@ -107,6 +107,7 @@ export const DIRECTIONS = [
 
 export const GRID_SIZE = 5;
 export const SAVE_KEY = 'MACANAN_SAVE';
+export const HISTORY_KEY = 'MACANAN_HISTORY';
 
 export const INITIAL_STATE = {
     board: Array(NODES.length).fill(null),
