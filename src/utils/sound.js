@@ -1,13 +1,13 @@
 // src/utils/sound.js
 const sounds = {
-  playerUwongWin: new Audio("/assets/sound/playerUwongWin.mp3"),
+  playerUwongWin: new Audio("/assets/sound/player_UwongWin.mp3"),
   playerMacanWin: new Audio("/assets/sound/playerMacanWin.mp3"),
   playerUwongLose: new Audio("/assets/sound/playerUwongLose.mp3"),
   playerMacanLose: new Audio("/assets/sound/playerMacanLose.mp3"),
   uwongEntrance: new Audio("/assets/sound/uwongEntrance.mp3"),
   uwong9Entrance: new Audio("/assets/sound/uwong9Entrance.mp3"),
   macanEntrance: new Audio("/assets/sound/macanEntrance.mp3"),
-  macanJump: new Audio("/assets/sound/macanJump.mp3"),
+  macanJump: new Audio("/assets/sound/macan_jump.mp3"),
   step: new Audio("/assets/sound/step.mp3"),
 };
 

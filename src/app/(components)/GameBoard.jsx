@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { ResumeNotification } from "./ResumeNotification";
 import { aiMoves, minimax } from "@/lib/AILogic";
 import { GameHistory } from "./GameHistory";
+import { playSound } from "@/utils/sound";
 
 export const GameBoard = ({ onReset }) => {
   const [boardState, setBoardState] = useState(Array(NODES.length).fill(null));
@@ -66,11 +67,21 @@ export const GameBoard = ({ onReset }) => {
 
   // AI move handling
   useEffect(() => {
-    if (!winner && ((turn === 'uwong' && isUwongAI) || (turn === 'macan' && isMacanAI))) {
+    if (
+      !winner &&
+      ((turn === "uwong" && isUwongAI) || (turn === "macan" && isMacanAI))
+    ) {
       const delay = setTimeout(handleAIMove, 1000);
       return () => clearTimeout(delay);
     }
-  }, [turn, boardState, uwongPiecesRemaining, macanPosition, isUwongAI, isMacanAI]);
+  }, [
+    turn,
+    boardState,
+    uwongPiecesRemaining,
+    macanPosition,
+    isUwongAI,
+    isMacanAI,
+  ]);
 
   // Save game state to local storage
   useEffect(() => {
@@ -103,10 +114,10 @@ export const GameBoard = ({ onReset }) => {
     selectedUwongPiece,
     winner,
     history,
-    isUwongAI, 
-    isMacanAI, 
-    aiDepth, 
-    playerSide
+    isUwongAI,
+    isMacanAI,
+    aiDepth,
+    playerSide,
   ]);
 
   // Load game state from local storage
@@ -145,7 +156,7 @@ export const GameBoard = ({ onReset }) => {
 
   useEffect(() => {
     // Load settings from session storage if they exist
-    const savedSettings = JSON.parse(sessionStorage.getItem('gameSettings'));
+    const savedSettings = JSON.parse(sessionStorage.getItem("gameSettings"));
     if (savedSettings) {
       setIsUwongAI(savedSettings.isUwongAI);
       setIsMacanAI(savedSettings.isMacanAI);
@@ -185,7 +196,6 @@ export const GameBoard = ({ onReset }) => {
       );
     }
   }, [winner]);
-
 
   const isGameInInitialState = () => {
     return (
@@ -232,6 +242,7 @@ export const GameBoard = ({ onReset }) => {
     setUwongPiecesRemaining((prev) => prev - piecesPlaced);
     setHighlightedSquareIndices([]); // Clear highlights after placement
     switchTurn(piecesPlaced);
+    playSound("uwong9Entrance");
   };
 
   const placeSingleUwong = (index) => {
@@ -244,6 +255,7 @@ export const GameBoard = ({ onReset }) => {
     setBoardState(newBoardState);
     setUwongPiecesRemaining((prev) => prev - 1);
     switchTurn(1);
+    playSound("uwongEntrance");
   };
 
   const tryMacanJump = (targetIndex) => {
@@ -305,6 +317,7 @@ export const GameBoard = ({ onReset }) => {
       setBoardState(newBoardState);
       setMacanPosition(bestJump.target);
       switchTurn(0);
+      playSound("macanJump");
       return;
     }
 
@@ -316,6 +329,7 @@ export const GameBoard = ({ onReset }) => {
       updateHistory();
       setBoardState(newBoardState);
       setMacanPosition(targetIndex);
+      playSound("step");
       switchTurn(0);
     }
   };
@@ -381,6 +395,7 @@ export const GameBoard = ({ onReset }) => {
             setBoardState(newBoardState);
             setSelectedUwongPiece(null);
             switchTurn(0);
+            playSound("step");
           }
         }
       }
@@ -394,6 +409,7 @@ export const GameBoard = ({ onReset }) => {
           setBoardState(newBoardState);
           setMacanPosition(index);
           switchTurn(0);
+          playSound("macanEntrance");
         }
       } else {
         // Handle Macan movement or jump
@@ -404,53 +420,79 @@ export const GameBoard = ({ onReset }) => {
 
   const checkWinConditions = () => {
     // Macan win check
-    const totalUwongPieces = boardState.filter(p => p === "uwong").length + uwongPiecesRemaining;
-    if (totalUwongPieces < 14) return 'macan';
+    const totalUwongPieces =
+      boardState.filter((p) => p === "uwong").length + uwongPiecesRemaining;
+    if (totalUwongPieces < 14) {
+      if (playerSide === "macan") {
+        playSound("playerMacanWin");
+      } else {
+        playSound("playerUwongLose");
+      }
+      return "macan";
+    }
 
     // Uwong win check
-    if (macanPosition !== null && !checkMacanCanMove()) return 'uwong';
+    if (macanPosition !== null && !checkMacanCanMove()) {
+      if (playerSide === "uwong") {
+        playSound("playerUwongWin");
+      } else {
+        playSound("playerMacanLose");
+      }
+      return "uwong";
+    }
 
     return null;
   };
 
   const updateHistory = () => {
-    setHistory(prev => [...prev, {
-      board: boardState,
-      macanPos: macanPosition,
-      uwongPieces: uwongPiecesRemaining,
-      turn,
-      isFirst: isFirstUwongTurn,
-      timestamp: new Date().toLocaleTimeString()
-    }]);
+    setHistory((prev) => [
+      ...prev,
+      {
+        board: boardState,
+        macanPos: macanPosition,
+        uwongPieces: uwongPiecesRemaining,
+        turn,
+        isFirst: isFirstUwongTurn,
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ]);
   };
 
   const handleAIMove = () => {
     let bestValue = -Infinity;
     let bestMove = null;
 
-    if (turn === 'uwong' && isUwongAI) {
-      const possibleMoves = aiMoves.uwong(boardState, uwongPiecesRemaining, isFirstUwongTurn);
+    if (turn === "uwong" && isUwongAI) {
+      const possibleMoves = aiMoves.uwong(
+        boardState,
+        uwongPiecesRemaining,
+        isFirstUwongTurn
+      );
 
-      possibleMoves.forEach(move => {
+      possibleMoves.forEach((move) => {
         let newBoard = [...boardState];
         let newUwongPieces = uwongPiecesRemaining;
         let newFirstTurn = isFirstUwongTurn;
 
-        if (move.type === 'square') {
+        if (move.type === "square") {
           newBoard = newBoard.map((val, idx) =>
-            move.indices.includes(idx) ? 'uwong' : val
+            move.indices.includes(idx) ? "uwong" : val
           );
           newUwongPieces -= 9;
           newFirstTurn = false;
-        } else if (move.type === 'place') {
-          newBoard[move.to] = 'uwong';
+          playSound("uwong9Entrance");
+        } else if (move.type === "place") {
+          newBoard[move.to] = "uwong";
           newUwongPieces -= 1;
-        } else if (move.type === 'move') {
+          playSound("uwongEntrance");
+        } else if (move.type === "move") {
           newBoard[move.from] = null;
-          newBoard[move.to] = 'uwong';
+          newBoard[move.to] = "uwong";
+          playSound("step");
         }
 
-        const moveValue = minimax.uwong( // Updated minimax call
+        const moveValue = minimax.uwong(
+          // Updated minimax call
           newBoard,
           macanPosition,
           newUwongPieces,
@@ -467,8 +509,8 @@ export const GameBoard = ({ onReset }) => {
         }
       });
 
-      executeMove(bestMove, 'uwong');
-    } else if (turn === 'macan' && isMacanAI) {
+      executeMove(bestMove, "uwong");
+    } else if (turn === "macan" && isMacanAI) {
       const possibleMoves = aiMoves.macan(boardState, macanPosition);
 
       possibleMoves.forEach((move, index) => {
@@ -478,15 +520,18 @@ export const GameBoard = ({ onReset }) => {
         if (macanPosition === null) {
           newBoard[move.to] = "macan";
           newMacanPosition = move.to;
+          playSound("macanEntrance");
         } else if (move.type === "jump") {
           move.path.forEach((i) => (newBoard[i] = null));
+          playSound("macanJump");
         }
 
         newBoard[macanPosition] = null;
         newBoard[newMacanPosition] = "macan";
 
         // Pass required parameters to minimax
-        const moveValue = minimax.macan( // Updated minimax call
+        const moveValue = minimax.macan(
+          // Updated minimax call
           newBoard,
           newMacanPosition,
           uwongPiecesRemaining,
@@ -500,13 +545,15 @@ export const GameBoard = ({ onReset }) => {
         if (moveValue > bestValue) {
           bestValue = moveValue;
           bestMove = move;
+          playSound("step");
         } else if (index == 0) {
           bestMove = move;
+          playSound("step");
         }
       });
 
       // Execute the best move
-      executeMove(bestMove, 'macan');
+      executeMove(bestMove, "macan");
     }
     updateHistory();
   };
@@ -517,17 +564,19 @@ export const GameBoard = ({ onReset }) => {
     let newMacanPosition = macanPosition;
     let newFirstTurn = isFirstUwongTurn;
 
-    if (player === 'uwong') {
-      if (move.type === 'square') {
-        move.indices.forEach(i => { if (newBoard[i] === null) newBoard[i] = 'uwong' });
+    if (player === "uwong") {
+      if (move.type === "square") {
+        move.indices.forEach((i) => {
+          if (newBoard[i] === null) newBoard[i] = "uwong";
+        });
         newUwongPieces -= 9;
         newFirstTurn = false;
-      } else if (move.type === 'place') {
-        newBoard[move.to] = 'uwong';
+      } else if (move.type === "place") {
+        newBoard[move.to] = "uwong";
         newUwongPieces -= 1;
-      } else if (move.type === 'move') {
+      } else if (move.type === "move") {
         newBoard[move.from] = null;
-        newBoard[move.to] = 'uwong';
+        newBoard[move.to] = "uwong";
       }
     } else {
       if (macanPosition === null) {
@@ -541,7 +590,6 @@ export const GameBoard = ({ onReset }) => {
         }
         newMacanPosition = move.to;
       }
-
     }
 
     setBoardState(newBoard);
@@ -549,9 +597,8 @@ export const GameBoard = ({ onReset }) => {
     setMacanPosition(newMacanPosition);
     setIsFirstUwongTurn(newFirstTurn);
     updateHistory();
-    switchTurn(player === 'macan' ? 0 : move.type === 'square' ? 9 : 1);
+    switchTurn(player === "macan" ? 0 : move.type === "square" ? 9 : 1);
   };
-
 
   const handleUndo = () => {
     if (history.length > 1) {
@@ -569,8 +616,8 @@ export const GameBoard = ({ onReset }) => {
   const handleReset = () => {
     localStorage.removeItem(SAVE_KEY);
     // Clear session storage when resetting
-    sessionStorage.removeItem('gameSettings');
-    
+    sessionStorage.removeItem("gameSettings");
+
     // Reset local state
     setBoardState(INITIAL_STATE.board);
     setTurn(INITIAL_STATE.turn);
@@ -580,7 +627,7 @@ export const GameBoard = ({ onReset }) => {
     setSelectedUwongPiece(null);
     setWinner(null);
     setHistory([INITIAL_STATE]);
-    
+
     // Notify parent component to show side selection
     if (onReset) onReset();
   };
@@ -595,7 +642,6 @@ export const GameBoard = ({ onReset }) => {
       router.push("/");
     }
   };
-
 
   return (
     <div className="game-container">
@@ -708,8 +754,6 @@ export const GameBoard = ({ onReset }) => {
         macanPieces={macanPosition !== null ? 0 : 1}
         playerSide={playerSide}
       />
-
-      {/* <GameHistory history={history} winner={winner} /> */}
 
       {/* Game board */}
       <div className="network">
