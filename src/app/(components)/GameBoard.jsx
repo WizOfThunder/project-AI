@@ -88,8 +88,9 @@ export const GameBoard = () => {
           macanPosition,
           isFirstUwongTurn,
           selectedUwongPiece,
-          winner,
+          winner, // Ensure this is saved
           history,
+          timestamp: new Date().toLocaleTimeString(),
         })
       );
     }
@@ -177,6 +178,8 @@ export const GameBoard = () => {
         uwongPieces: uwongPiecesRemaining,
         turn: turn,
         isFirst: isFirstUwongTurn,
+        timestamp: new Date().toLocaleTimeString(),
+        winner,
       },
     ]);
 
@@ -487,6 +490,31 @@ export const GameBoard = () => {
     }
   }, [turn, boardState, macanPosition]);
 
+  useEffect(() => {
+    if (winner) {
+      const existingGames = JSON.parse(
+        localStorage.getItem(HISTORY_KEY) || "[]"
+      );
+      const newGame = {
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        winner,
+        moves: history,
+        totalMoves: history.length,
+        totalUwongPieces: boardState.filter((piece) => piece === "uwong")
+          .length,
+        macanCaptures:
+          21 -
+          (boardState.filter((piece) => piece === "uwong").length +
+            uwongPiecesRemaining),
+      };
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify([...existingGames, newGame])
+      );
+    }
+  }, [winner]);
+
   const handleUndo = () => {
     if (history.length > 1) {
       const previousState = history[history.length - 2];
@@ -635,7 +663,7 @@ export const GameBoard = () => {
         className="game-info"
       />
 
-      <GameHistory history={history} />
+      <GameHistory history={history} winner={winner} />
 
       {/* Game board */}
       <div className="network">
