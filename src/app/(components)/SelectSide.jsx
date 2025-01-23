@@ -28,7 +28,7 @@ const PLAYERS = {
 };
 
 export default function SelectSide({ onConfirm }) {
-  const [selected, setSelected] = useState(null); // Menyimpan sisi yang dipilih
+  const [selected, setSelected] = useState("macan"); // Menyimpan sisi yang dipilih
   const [confirmed, setConfirmed] = useState(false); // Menyimpan status apakah tombol "Select" sudah ditekan
   const [depth, setDepth] = useState(3); // Default depth value
   const [minDepth, setMinDepth] = useState(2); // Minimal depth value
