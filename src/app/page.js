@@ -1,20 +1,24 @@
 "use client";
 import { SAVE_KEY } from "@/lib/constants";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import Image from 'next/image';
+import { useState, useEffect, useContext } from "react";
+import Image from "next/image";
+import { SoundContext } from "@/context/SoundContext";
 
 export default function StartMenu() {
   const router = useRouter();
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [hasSavedGame, setHasSavedGame] = useState(false);
+  const { isSoundEnabled, setIsSoundEnabled } = useContext(SoundContext); // Ambil state dan fungsi dari context
 
+  // Cek apakah ada game yang tersimpan
   useEffect(() => {
     const savedGame = localStorage.getItem(SAVE_KEY);
     setHasSavedGame(!!savedGame && savedGame !== "undefined");
   }, []);
 
   const handlePlay = () => {
+    setIsSoundEnabled(true);
     if (hasSavedGame) {
       setShowResumeDialog(true);
     } else {
@@ -23,7 +27,7 @@ export default function StartMenu() {
   };
 
   const handleNewGame = () => {
-    // Clear existing saves and session data
+    // Hapus data yang tersimpan
     localStorage.removeItem(SAVE_KEY);
     sessionStorage.removeItem("gameSettings");
     router.push("/play");
@@ -34,12 +38,8 @@ export default function StartMenu() {
   };
 
   const handleLeaderboard = () => {
+    setIsSoundEnabled(true);
     router.push("/history");
-  };
-
-  const handleExit = () => {
-    // Implement proper exit logic for your app
-    window.close(); // Note: Only works in some environments
   };
 
   return (
@@ -63,35 +63,28 @@ export default function StartMenu() {
           backdropFilter: "blur(8px)",
         }}
       >
-
         <Image
           src="/assets/macanan_logo.png"
           alt="Logo"
           width={150}
           height={150}
-          style={{ borderRadius: '10px', margin: '10px' }}
+          style={{ borderRadius: "10px", margin: "10px" }}
         />
 
         {/* Main Menu Buttons */}
         <div className="flex flex-col gap-4">
-        <button
-          onClick={handlePlay}
-          className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-2 px-4 rounded border-4 border-blue-700 transition-all"
-        >
-          Play
-        </button>
-        <button
-          onClick={handleLeaderboard}
-          className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-2 px-4 rounded border-4 border-green-700 transition-all"
-        >
-          History
-        </button>
-          {/* <button
-            onClick={handleExit}
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-all"
+          <button
+            onClick={handlePlay}
+            className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-2 px-4 rounded border-4 border-blue-700 transition-all"
           >
-            Exit
-          </button> */}
+            Play
+          </button>
+          <button
+            onClick={handleLeaderboard}
+            className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-2 px-4 rounded border-4 border-green-700 transition-all"
+          >
+            History
+          </button>
         </div>
 
         {/* Resume Dialog */}
@@ -105,7 +98,7 @@ export default function StartMenu() {
               </p>
 
               <div className="flex gap-4 justify-end">
-              <button
+                <button
                   onClick={handleNewGame}
                   className="bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-2 px-4 rounded border-2 border-red-700 transition-all"
                 >

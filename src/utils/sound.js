@@ -9,6 +9,7 @@ const sounds = {
   macanEntrance: new Audio("/assets/sound/macanEntrance.mp3"),
   macanJump: new Audio("/assets/sound/macan_jump.mp3"),
   step: new Audio("/assets/sound/step.mp3"),
+  ambientJungle: new Audio("/assets/sound/ambientJungle.mp3"),
 };
 
 /**
@@ -16,11 +17,14 @@ const sounds = {
  * @param {string} soundName - Nama file suara (tanpa ekstensi).
  * @param {number} volume - Volume suara (0-1).
  */
-export const playSound = (soundName, volume = 1) => {
+export const playSound = (soundName, volume = 1, loop = false) => {
   if (sounds[soundName]) {
-    sounds[soundName].volume = volume; // Atur volume (0-1)
-    sounds[soundName].play(); // Mainkan suara
+    sounds[soundName].volume = volume;
+    sounds[soundName].loop = loop;
+    sounds[soundName].play();
+    return sounds[soundName]; // Kembalikan instance audio untuk kontrol lebih lanjut
   } else {
     console.warn(`Sound "${soundName}" not found!`);
+    return null;
   }
 };
