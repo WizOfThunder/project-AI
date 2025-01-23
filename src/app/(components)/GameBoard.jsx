@@ -9,6 +9,7 @@ import {
   adjacencyList,
   SAVE_KEY,
   INITIAL_STATE,
+  HISTORY_KEY,
 } from "@/lib/constants";
 import {
   isValidSquareStart,
