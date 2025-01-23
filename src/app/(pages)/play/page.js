@@ -1,9 +1,7 @@
-'use client'
+"use client";
 
-import { GameBoard } from '@/app/(components)/GameBoard';
+import { GameBoard } from "@/app/(components)/GameBoard";
 
 export default function Home() {
-  return (
-    <GameBoard />
-  );
+  return <GameBoard />;
 }
