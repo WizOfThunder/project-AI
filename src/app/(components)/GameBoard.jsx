@@ -33,7 +33,6 @@ export const GameBoard = () => {
   const [winner, setWinner] = useState(null);
   const [history, setHistory] = useState([INITIAL_STATE]);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
-  const [isAIMoving, setIsAIMoving] = useState(false);
 
   const router = useRouter();
 
@@ -483,7 +482,6 @@ export const GameBoard = () => {
     if (turn === "macan" && !winner) {
       const delay = setTimeout(() => {
         makeAIMove();
-        setIsAIMoving(false); // AI selesai bergerak
       }, 1000); // Add 1s delay for "thinking"
       return () => clearTimeout(delay);
     }
@@ -527,12 +525,6 @@ export const GameBoard = () => {
   return (
     <div className="game-container">
       <ResumeNotification />
-      {/* {isAIMoving && (
-        <div className="ai-moving-overlay sticky-bottom">
-          <div className="ai-moving-spinner"></div>
-          <p>Macan is thinking...</p>
-        </div>
-      )} */}
       {showQuitConfirm && (
         <div className="confirmation-overlay">
           <div className="confirmation-modal">
