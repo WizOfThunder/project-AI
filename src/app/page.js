@@ -9,7 +9,6 @@ export default function StartMenu() {
   const [hasSavedGame, setHasSavedGame] = useState(false);
 
   useEffect(() => {
-    // Check for existing saved game on mount
     const savedGame = localStorage.getItem(SAVE_KEY);
     setHasSavedGame(!!savedGame && savedGame !== 'undefined');
   }, []);
@@ -22,13 +21,14 @@ export default function StartMenu() {
     }
   };
 
-  const handleResume = () => {
+  const handleNewGame = () => {
+    // Clear existing saves and session data
+    localStorage.removeItem(SAVE_KEY);
+    sessionStorage.removeItem('gameSettings');
     router.push('/play');
   };
 
-  const handleNewGame = () => {
-    // Clear existing save
-    localStorage.removeItem(SAVE_KEY);
+  const handleResume = () => {
     router.push('/play');
   };
 

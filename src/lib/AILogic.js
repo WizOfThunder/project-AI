@@ -1,253 +1,291 @@
-import { adjacencyList, DIRECTIONS, NODES } from "./constants";
+import { adjacencyList, DIRECTIONS, GRID_SIZE, NODES } from "./constants";
 import { getSquareIndices, isValidSquareStart } from "./gameLogic";
 
-// AI logic
-export const WEIGHTS = {
-  CAPTURE: 100,         // Weight per captured Uwong piece
-  MOBILITY: 10,         // Weight per possible move
-  CENTRALITY: 5,        // Weight per unit distance from center
-  STRATEGIC_POSITIONS: { // Strategic node bonuses
-    12: 50,  // Center node
-    10: 30,  // High-value nodes
-    14: 30,
-    2: 20,
-    22: 20
+//#region Shared Configuration
+const STRATEGY_CONFIG = {
+  macan: {
+    weights: {
+      CAPTURE: 500,
+      MOBILITY: 10,
+      CENTRALITY: 5,
+      STRATEGIC_POSITIONS: { 12: 50, 10: 30, 14: 30, 2: 20, 22: 20 },
+      DANGER_PENALTY: -100,
+      WIN_BONUS: 100000
+    },
+    evaluator: macanEvaluator,
+    moveGenerator: getMacanMoves
   },
-  DANGER_PENALTY: -100  // Penalty if surrounded
+  uwong: {
+    weights: {
+      DEFENSE_CLUSTER: 200,
+      MACAN_MOBILITY_PENALTY: -50,
+      SURROUNDING_BONUS: 100,
+      PIECE_CONSERVATION: 300,
+      CENTRAL_CONTROL: 20,
+      BLOCKING_BONUS: 150,
+      DANGER_PENALTY: -500,
+      WIN_BONUS: 100000
+    },
+    evaluator: uwongEvaluator,
+    moveGenerator: getUwongMoves
+  }
 };
 
-export const evaluateBoard = (boardState, macanPosition) => {
-  const center = { x: 350, y: 250 }; // Defined for all cases
-  let score = 0;
-  
-  // Base capture score
-  const captured = 21 - boardState.filter(p => p === 'uwong').length;
-  score += captured * WEIGHTS.CAPTURE;
+const CENTER_NODE = { x: 350, y: 250 };
+const DEFENSIVE_CLUSTERS = [12, 7, 11, 16, 17];
+const CENTRAL_NODES = [6, 7, 8, 11, 12, 13, 16, 17, 18];
+//#endregion
 
-  // Mobility score
-  const moves = getMacanMoves(boardState, macanPosition).length;
-  score += moves * WEIGHTS.MOBILITY;
+//#region Core AI Functions
+const createMinimax = (playerType) => memoize(
+  (boardState, macanPosition, uwongPieces, isFirstTurn, depth, alpha, beta, isMaximizing) => {
+    const { weights, evaluator, moveGenerator } = STRATEGY_CONFIG[playerType];
+    const totalUwong = boardState.filter(p => p === 'uwong').length + uwongPieces;
 
-  if (macanPosition !== null) {
-    // Centrality score
-    const position = NODES[macanPosition];
-    const distance = Math.hypot(
-      position.x - center.x,
-      position.y - center.y
-    );
-    score -= distance * WEIGHTS.CENTRALITY;
-
-    // Strategic position bonus
-    score += WEIGHTS.STRATEGIC_POSITIONS[macanPosition] || 0;
-
-    // Danger penalty
-    if (moves === 0) score += WEIGHTS.DANGER_PENALTY;
-  } else {
-    // Initial placement evaluation
-    const emptyNodes = boardState
-      .map((_, i) => i)
-      .filter(i => boardState[i] === null);
-
-    score = emptyNodes.reduce((max, index) => {
-      const position = NODES[index];
-      const distance = Math.hypot(
-        position.x - center.x, // ✅ Now properly defined
-        position.y - center.y
-      );
-      const strategic = WEIGHTS.STRATEGIC_POSITIONS[index] || 0;
-      const value = strategic - (distance * WEIGHTS.CENTRALITY);
-      return Math.max(max, value);
-    }, -Infinity);
-  }
-
-  return score;
-};
-
-
-export const getMacanMoves = (boardState, macanPosition) => {
-  if (macanPosition === null) {
-    return boardState
-      .map((_, index) => ({ type: 'place', to: index }))
-      .filter(move => boardState[move.to] === null);
-  }
-
-  const moves = [];
-  // Check regular moves
-  adjacencyList[macanPosition].forEach(index => {
-    if (boardState[index] === null) {
-      moves.push({ type: 'move', to: index, captured: 0 });
+    // Base cases
+    if (checkWinCondition(playerType, totalUwong, macanPosition, boardState)) {
+      return weights.WIN_BONUS * (isMaximizing ? 1 : -1);
     }
-  });
+    if (depth === 0) return evaluator(boardState, macanPosition, uwongPieces);
 
-  DIRECTIONS.forEach(dirFn => {
-    let current = macanPosition;
-    const path = [];
-    let captured = 0;
+    const moves = moveGenerator(boardState, macanPosition, uwongPieces, isFirstTurn);
+    let bestValue = isMaximizing ? -Infinity : Infinity;
 
-    while (true) {
-      const next = dirFn(current);
-      if (next === undefined || next === null || next < 0) break;
-
-      if (boardState[next] === 'uwong') {
-        captured++;
-        path.push(next);
-        current = next;
-      } else if (boardState[next] === null && captured > 0) {
-        if (captured % 2 === 1) {
-          moves.push({
-            type: 'jump',
-            to: next,
-            captured: captured,
-            path: [...path]
-          });
-        }
-        break;
-      } else {
-        break;
-      }
-    }
-  });
-
-  return moves;
-};
-
-export const getUwongMoves = (boardState, uwongPiecesRemaining, isFirstUwongTurn) => {
-  const moves = [];
-  
-  // Phase 1: Initial 3x3 placement
-  if (isFirstUwongTurn && uwongPiecesRemaining >= 9) {
-    const validStarts = boardState
-      .map((_, i) => i)
-      .filter(i => isValidSquareStart(i, GRID_SIZE));
-
-    validStarts.forEach(i => {
-      const indices = getSquareIndices(i, GRID_SIZE);
-      if (indices.some(idx => boardState[idx] === null)) {
-        moves.push({ type: 'square', indices });
-      }
-    });
-    return moves;
-  }
-
-  // Phase 2/3 combined logic
-  if (uwongPiecesRemaining > 0) {
-    // Single placement
-    boardState.forEach((_, i) => {
-      if (boardState[i] === null) moves.push({ type: 'place', to: i });
-    });
-  } else {
-    // Movement
-    boardState.forEach((piece, i) => {
-      if (piece === 'uwong') {
-        adjacencyList[i].forEach(neighbor => {
-          if (boardState[neighbor] === null) {
-            moves.push({ type: 'move', from: i, to: neighbor });
-          }
-        });
-      }
-    });
-  }
-
-  return moves;
-};
-
-
-// Add memoization function for better performance
-export const memoize = (fn) => {
-  const cache = new Map();
-  return (...args) => {
-    const key = args.map(arg => {
-      if (Array.isArray(arg)) return arg.join(',');
-      return JSON.stringify(arg);
-    }).join('|');
-    return cache.get(key) || cache.set(key, fn(...args)).get(key);
-  };
-};
-
-
-// Minimax with Alpha-Beta pruning
-export const minimax = memoize((
-  boardState,
-  macanPosition,
-  uwongPiecesRemaining,
-  isFirstUwongTurn,
-  depth,
-  alpha,
-  beta,
-  maximizingPlayer
-) => {
-  // Base cases
-  const uwongCount = boardState.filter(p => p === 'uwong').length;
-  // console.log(maximizingPlayer, depth);
-  const totalUwong = uwongCount + uwongPiecesRemaining;
-  if (totalUwong < 14) return Infinity; // Macan win
-  if (depth === 0) return evaluateBoard(boardState, macanPosition);
-    
-  if (maximizingPlayer) {
-    const possibleMoves = getMacanMoves(boardState, macanPosition);
-    let maxEval = -Infinity;
-    for (const move of possibleMoves) {
-      const newBoard = [...boardState];
-      let newMacanPosition = macanPosition;
-      
-      if (macanPosition === null) {
-        // Handle initial placement
-        newBoard[move.to] = 'macan';
-        newMacanPosition = move.to;
-      } else {
-        // Handle regular moves/jumps
-        newBoard[macanPosition] = null;
-        newBoard[move.to] = 'macan';
-        newMacanPosition = move.to;
-        
-        if (move.type === 'jump') {
-          move.path.forEach(i => newBoard[i] = null);
-        }
-      }
-      const evaluation = minimax(newBoard, newMacanPosition, uwongPiecesRemaining, isFirstUwongTurn, depth - 1, alpha, beta, false);
-      maxEval = Math.max(maxEval, evaluation);
-      alpha = Math.max(alpha, evaluation);
-      if (beta <= alpha) break;
-    }
-    return maxEval;
-  } else {
-    let minEval = Infinity;
-    const moves = getUwongMoves(boardState, uwongPiecesRemaining, isFirstUwongTurn);
     for (const move of moves) {
-      let newBoard = [...boardState];
-      let newUwongPieces = uwongPiecesRemaining;
-      let newIsFirstTurn = isFirstUwongTurn;
-
-      if (move.type === 'square') {
-        newBoard = newBoard.map((val, idx) => 
-          move.indices.includes(idx) ? 'uwong' : val
-        );
-        newUwongPieces -= 9;
-        newIsFirstTurn = false;
-      } else if (move.type === 'place') {
-        newBoard[move.to] = 'uwong';
-        newUwongPieces -= 1;
-      } else if (move.type === 'move') {
-        newBoard[move.from] = null;
-        newBoard[move.to] = 'uwong';
-      }
-      
-      const evaluation = minimax(
-        newBoard,
+      const { newBoard, newMacanPos, newUwongPieces, newIsFirstTurn } = applyMove(
+        move,
+        boardState,
         macanPosition,
+        uwongPieces,
+        isFirstTurn,
+        playerType
+      );
+
+      const evaluation = createMinimax(playerType)(
+        newBoard,
+        newMacanPos,
         newUwongPieces,
         newIsFirstTurn,
         depth - 1,
         alpha,
         beta,
-        true
+        !isMaximizing
       );
 
-      minEval = Math.min(minEval, evaluation);
-      beta = Math.min(beta, evaluation);
+      bestValue = isMaximizing
+        ? Math.max(bestValue, evaluation)
+        : Math.min(bestValue, evaluation);
+
+      if (isMaximizing) {
+        alpha = Math.max(alpha, evaluation);
+      } else {
+        beta = Math.min(beta, evaluation);
+      }
+
       if (beta <= alpha) break;
     }
 
-    return minEval;
+    return bestValue;
   }
-});
+);
+//#endregion
+
+//#region Evaluation Functions
+function macanEvaluator(boardState, macanPosition, uwongPieces) {
+  const { weights } = STRATEGY_CONFIG.macan;
+  let score = 0;
+
+  // Capture score
+  const totalUwong = boardState.filter(p => p === 'uwong').length + uwongPieces;
+  score += (21 - totalUwong) * weights.CAPTURE;
+
+  // Mobility
+  const mobility = getMacanMoves(boardState, macanPosition).length;
+  score += mobility * weights.MOBILITY;
+
+  // Position analysis
+  if (macanPosition !== null) {
+    const position = NODES[macanPosition];
+    const distance = Math.hypot(position.x - CENTER_NODE.x, position.y - CENTER_NODE.y);
+    score -= distance * weights.CENTRALITY;
+    score += weights.STRATEGIC_POSITIONS[macanPosition] || 0;
+    if (mobility === 0) score += weights.DANGER_PENALTY;
+  }
+
+  return score;
+}
+
+function uwongEvaluator(boardState, macanPosition, uwongPieces) {
+  const { weights } = STRATEGY_CONFIG.uwong;
+  let score = 0;
+
+  // Conservation bonus
+  const totalUwong = boardState.filter(p => p === 'uwong').length + uwongPieces;
+  score += totalUwong >= 14 ? weights.PIECE_CONSERVATION : 0;
+
+  // Macan mobility penalty
+  if (macanPosition !== null) {
+    const macanMobility = getMacanMoves(boardState, macanPosition).length;
+    score += macanMobility * weights.MACAN_MOBILITY_PENALTY;
+  }
+
+  // Defensive positioning
+  score += DEFENSIVE_CLUSTERS.filter(i => boardState[i] === 'uwong').length * weights.DEFENSE_CLUSTER;
+
+  // Surrounding bonus
+  if (macanPosition !== null) {
+    const surrounding = adjacencyList[macanPosition].filter(i => boardState[i] === 'uwong').length;
+    score += surrounding * weights.SURROUNDING_BONUS;
+  }
+
+  // Central control
+  score += CENTRAL_NODES.filter(i => boardState[i] === 'uwong').length * weights.CENTRAL_CONTROL;
+
+  return score;
+}
+//#endregion
+
+//#region Move Handling
+function applyMove(move, board, macanPos, uwongPieces, isFirstTurn, playerType) {
+  const newBoard = [...board];
+  let newMacanPos = macanPos;
+  let newUwongPieces = uwongPieces;
+  let newIsFirstTurn = isFirstTurn;
+
+  if (playerType === 'macan') {
+    if (macanPos === null) {
+      newBoard[move.to] = 'macan';
+      newMacanPos = move.to;
+    } else {
+      newBoard[macanPos] = null;
+      newBoard[move.to] = 'macan';
+      if (move.type === 'jump') {
+        move.path.forEach(i => newBoard[i] = null);
+      }
+      newMacanPos = move.to;
+    }
+  } else {
+    if (move.type === 'square') {
+      move.indices.forEach(i => { if (newBoard[i] === null) newBoard[i] = 'uwong' });
+      newUwongPieces -= 9;
+      newIsFirstTurn = false;
+    } else if (move.type === 'place') {
+      newBoard[move.to] = 'uwong';
+      newUwongPieces -= 1;
+    } else if (move.type === 'move') {
+      newBoard[move.from] = null;
+      newBoard[move.to] = 'uwong';
+    }
+  }
+
+  return { newBoard, newMacanPos, newUwongPieces, newIsFirstTurn };
+}
+
+function getMacanMoves(board, macanPos) {
+  if (!macanPos) return board.map((_, i) => ({ type: 'place', to: i })).filter(m => !board[m.to]);
+
+  const moves = [];
+  
+  // Regular moves
+  adjacencyList[macanPos].forEach(i => {
+    if (!board[i]) moves.push({ type: 'move', to: i, captured: 0 });
+  });
+
+  // Jump moves
+  DIRECTIONS.forEach(dirFn => analyzeJumpPath(dirFn, macanPos, board, moves));
+
+  return moves.sort((a, b) => b.captured - a.captured);
+}
+
+function getUwongMoves(board, uwongPieces, isFirstTurn) {
+  if (isFirstTurn && uwongPieces >= 9) {
+    return getInitialPlacementMoves(board);
+  }
+  return uwongPieces > 0 
+    ? getPlacementMoves(board) 
+    : getMovementMoves(board);
+}
+//#endregion
+
+//#region Helper Functions
+function analyzeJumpPath(dirFn, startPos, board, moves) {
+  let current = startPos;
+  const path = [];
+  let captured = 0;
+
+  while (true) {
+    const next = dirFn(current);
+    if (!next || next < 0) break;
+
+    if (board[next] === 'uwong') {
+      captured++;
+      path.push(next);
+      current = next;
+    } else if (!board[next] && captured > 0) {
+      if (captured % 2 === 1) {
+        moves.push({ type: 'jump', to: next, captured, path: [...path] });
+      }
+      break;
+    } else {
+      break;
+    }
+  }
+}
+
+function getInitialPlacementMoves(board) {
+  return board
+    .map((_, i) => i)
+    .filter(i => isValidSquareStart(i, GRID_SIZE))
+    .map(i => ({
+      type: 'square',
+      indices: getSquareIndices(i, GRID_SIZE).filter(idx => !board[idx])
+    }))
+    .filter(m => m.indices.length > 0);
+}
+
+function getPlacementMoves(board) {
+  return board
+    .map((_, i) => ({ type: 'place', to: i }))
+    .filter(m => !board[m.to]);
+}
+
+function getMovementMoves(board) {
+  return board.flatMap((piece, i) => 
+    piece === 'uwong' 
+      ? adjacencyList[i]
+          .filter(j => !board[j])
+          .map(j => ({ type: 'move', from: i, to: j }))
+      : []
+  );
+}
+
+function checkWinCondition(player, totalUwong, macanPos, board) {
+  if (player === 'macan') return totalUwong < 14;
+  
+  // Check if Macan is surrounded
+  return macanPos !== null && 
+    adjacencyList[macanPos].every(i => board[i] !== null) && 
+    getMacanMoves(board, macanPos).length === 0;
+}
+
+export const memoize = (fn) => {
+  const cache = new Map();
+  return (...args) => {
+    const key = args.map(a => 
+      Array.isArray(a) ? a.join(',') : JSON.stringify(a)
+    ).join('|');
+    return cache.get(key) || cache.set(key, fn(...args)).get(key);
+  };
+};
+//#endregion
+
+// Exports
+export const minimax = {
+  macan: createMinimax('macan'),
+  uwong: createMinimax('uwong')
+};
+
+export const aiMoves = {
+  macan: getMacanMoves,
+  uwong: getUwongMoves
+};

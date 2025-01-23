@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Button from "./Button";
+import { SAVE_KEY } from "@/lib/constants";
 
 const COLORS = {
   macan: {
@@ -26,7 +27,7 @@ const PLAYERS = {
   },
 };
 
-export default function SelectSide() {
+export default function SelectSide({ onConfirm }) {
   const [selected, setSelected] = useState(null); // Menyimpan sisi yang dipilih
   const [confirmed, setConfirmed] = useState(false); // Menyimpan status apakah tombol "Select" sudah ditekan
   const [depth, setDepth] = useState(3); // Default depth value
@@ -48,10 +49,12 @@ export default function SelectSide() {
   };
 
   const handleOk = () => {
-    // Lakukan sesuatu dengan nilai depth yang dipilih
-    console.log("Depth selected:", depth);
-    alert(`Depth ${depth} confirmed!`);
+    setConfirmed(false); // Kembali ke kondisi awal
+    onConfirm(selected, depth);
+    // Clear any existing game saves when starting new game
+    localStorage.removeItem(SAVE_KEY);
   };
+
 
   return (
     <div className="relative h-screen w-full overflow-hidden">
