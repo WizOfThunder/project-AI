@@ -33,7 +33,7 @@ export default function StartMenu() {
   };
 
   const handleLeaderboard = () => {
-    router.push('/leaderboard');
+    router.push('/history');
   };
 
   const handleExit = () => {
