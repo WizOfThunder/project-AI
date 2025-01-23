@@ -20,6 +20,7 @@ import { GameInfo } from "./GameInfo";
 import { useRouter } from "next/navigation";
 import { ResumeNotification } from "./ResumeNotification";
 import { getMacanMoves, minimax } from "@/lib/AILogic";
+import { GameHistory } from "./GameHistory";
 
 export const GameBoard = () => {
   const [boardState, setBoardState] = useState(Array(NODES.length).fill(null));
@@ -335,7 +336,7 @@ export const GameBoard = () => {
   };
 
   const handleNodeClick = (index) => {
-    if (winner || isAIMoving) return;
+    if (winner) return;
     if (turn === "uwong") {
       if (uwongPiecesRemaining > 0) {
         if (isFirstUwongTurn) {
@@ -480,7 +481,6 @@ export const GameBoard = () => {
   // Add useEffect to trigger AI move
   useEffect(() => {
     if (turn === "macan" && !winner) {
-      setIsAIMoving(true); // AI mulai bergerak
       const delay = setTimeout(() => {
         makeAIMove();
         setIsAIMoving(false); // AI selesai bergerak
@@ -641,6 +641,8 @@ export const GameBoard = () => {
         macanPieces={macanPosition !== null ? 0 : 1}
         className="game-info"
       />
+
+      <GameHistory history={history} />
 
       {/* Game board */}
       <div className="network">
