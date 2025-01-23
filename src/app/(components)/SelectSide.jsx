@@ -5,54 +5,74 @@ import { motion } from "framer-motion";
 import Button from "./Button";
 
 const COLORS = {
-  left: {
+  macan: {
     primary: "#ff4d4d",
     text: "#ffffff",
   },
-  right: {
+  uwong: {
     primary: "#2b2b7b",
     text: "#ffffff",
   },
 };
 
 const PLAYERS = {
-  left: {
+  macan: {
     name: "Macan",
     image: "/assets/tiger_circle.png",
   },
-  right: {
+  uwong: {
     name: "Uwong",
     image: "/assets/uwong_circle.png",
   },
 };
 
 export default function SelectSide() {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(null); // Menyimpan sisi yang dipilih
+  const [confirmed, setConfirmed] = useState(false); // Menyimpan status apakah tombol "Select" sudah ditekan
+  const [depth, setDepth] = useState(3); // Default depth value
+  const [minDepth, setMinDepth] = useState(2); // Minimal depth value
+  const [maxDepth, setMaxDepth] = useState(5); // Maximal depth value
 
   const handleSelect = (side) => {
-    // Reset if clicking the same side
-    if (selected === side) {
-      setSelected(null);
-      return;
+    if (!confirmed) {
+      setSelected(side);
     }
-    setSelected(side);
+  };
+
+  const handleConfirm = () => {
+    setConfirmed(true); // Mengunci sisi yang dipilih dan expand sisi satunya
+  };
+
+  const handleCancel = () => {
+    setConfirmed(false); // Kembali ke kondisi awal
+  };
+
+  const handleOk = () => {
+    // Lakukan sesuatu dengan nilai depth yang dipilih
+    console.log("Depth selected:", depth);
+    alert(`Depth ${depth} confirmed!`);
   };
 
   return (
     <div className="relative h-screen w-full overflow-hidden">
       <div className="flex h-full">
-        {/* Left Side */}
+        {/* Macan Side */}
         <motion.div
           className="relative flex-1 cursor-pointer overflow-hidden"
           style={{
-            backgroundColor: COLORS.left.primary,
+            backgroundColor: COLORS.macan.primary,
             clipPath: "polygon(0 0, 100% 0, calc(100% - 40px) 100%, 0 100%)",
           }}
           animate={{
-            flex: selected === "right" ? 0.3 : selected === "left" ? 1.3 : 1,
+            flex:
+              selected === "macan" && !confirmed
+                ? 1.3 // Expand jika dipilih dan belum dikonfirmasi
+                : selected === "uwong" && confirmed
+                ? 1.3 // Expand sisi satunya setelah dikonfirmasi
+                : 0.3, // Shrink untuk kondisi lainnya
           }}
           transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
-          onClick={() => handleSelect("left")}
+          onClick={() => handleSelect("macan")}
         >
           {/* Radial Burst Effect */}
           <div
@@ -67,7 +87,7 @@ export default function SelectSide() {
           <motion.div
             className="absolute inset-0 bg-black pointer-events-none"
             animate={{
-              opacity: selected === "right" ? 0.5 : 0,
+              opacity: selected === "uwong" && confirmed ? 0.5 : 0,
             }}
             transition={{ duration: 0.3 }}
           />
@@ -76,13 +96,13 @@ export default function SelectSide() {
             <motion.div
               className="w-48 h-48"
               animate={{
-                scale: selected === "left" ? 1.1 : 1,
-                y: selected === "left" ? -20 : 0,
+                scale: selected === "macan" && !confirmed ? 1.1 : 1,
+                y: selected === "macan" && !confirmed ? -20 : 0,
               }}
               transition={{ duration: 0.5, type: "spring" }}
             >
               <img
-                src={PLAYERS.left.image || "/placeholder.svg"}
+                src={PLAYERS.macan.image || "/placeholder.svg"}
                 alt=""
                 className="w-full h-full object-contain"
               />
@@ -90,42 +110,86 @@ export default function SelectSide() {
             <motion.div
               className="flex flex-col items-center gap-4"
               animate={{
-                scale: selected === "left" ? 1.1 : 1,
+                scale: selected === "macan" && !confirmed ? 1.1 : 1,
               }}
             >
               <h2
                 className="text-5xl font-bold tracking-wider"
-                style={{ color: COLORS.left.text }}
+                style={{ color: COLORS.macan.text }}
               >
-                {PLAYERS.left.name}
+                {PLAYERS.macan.name}
               </h2>
-              {selected === "left" && (
+              {selected === "macan" && !confirmed && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <Button variant="secondary" className="px-8 py-2 text-xl">
+                  <Button
+                    variant="secondary"
+                    className="px-8 py-2 text-xl"
+                    onClick={handleConfirm}
+                  >
                     Select
                   </Button>
+                </motion.div>
+              )}
+              {confirmed && selected === "uwong" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex flex-col items-center gap-4"
+                >
+                  <h2 className="text-3xl font-bold">Minimax Depth</h2>
+                  <input
+                    type="range"
+                    min={minDepth}
+                    max={maxDepth}
+                    value={depth}
+                    onChange={(e) => setDepth(parseInt(e.target.value))}
+                    className="w-64"
+                  />
+                  <span className="text-xl">{depth}</span>
+                  <div className="flex gap-4">
+                    <Button
+                      variant="secondary"
+                      className="px-8 py-2 text-xl"
+                      onClick={handleCancel}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      className="px-8 py-2 text-xl"
+                      onClick={handleOk}
+                    >
+                      OK
+                    </Button>
+                  </div>
                 </motion.div>
               )}
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Right Side */}
+        {/* Uwong Side */}
         <motion.div
           className="relative flex-1 cursor-pointer overflow-hidden"
           style={{
-            backgroundColor: COLORS.right.primary,
+            backgroundColor: COLORS.uwong.primary,
             clipPath: "polygon(40px 0, 100% 0, 100% 100%, 0 100%)",
           }}
           animate={{
-            flex: selected === "left" ? 0.3 : selected === "right" ? 1.3 : 1,
+            flex:
+              selected === "uwong" && !confirmed
+                ? 1.3 // Expand jika dipilih dan belum dikonfirmasi
+                : selected === "macan" && confirmed
+                ? 1.3 // Expand sisi satunya setelah dikonfirmasi
+                : 0.3, // Shrink untuk kondisi lainnya
           }}
           transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
-          onClick={() => handleSelect("right")}
+          onClick={() => handleSelect("uwong")}
         >
           {/* Radial Burst Effect */}
           <div
@@ -140,7 +204,7 @@ export default function SelectSide() {
           <motion.div
             className="absolute inset-0 bg-black pointer-events-none"
             animate={{
-              opacity: selected === "left" ? 0.5 : 0,
+              opacity: selected === "macan" && confirmed ? 0.5 : 0,
             }}
             transition={{ duration: 0.3 }}
           />
@@ -149,13 +213,13 @@ export default function SelectSide() {
             <motion.div
               className="w-48 h-48"
               animate={{
-                scale: selected === "right" ? 1.1 : 1,
-                y: selected === "right" ? -20 : 0,
+                scale: selected === "uwong" && !confirmed ? 1.1 : 1,
+                y: selected === "uwong" && !confirmed ? -20 : 0,
               }}
               transition={{ duration: 0.5, type: "spring" }}
             >
               <img
-                src={PLAYERS.right.image || "/placeholder.svg"}
+                src={PLAYERS.uwong.image || "/placeholder.svg"}
                 alt=""
                 className="w-full h-full object-contain"
               />
@@ -163,24 +227,63 @@ export default function SelectSide() {
             <motion.div
               className="flex flex-col items-center gap-4"
               animate={{
-                scale: selected === "right" ? 1.1 : 1,
+                scale: selected === "uwong" && !confirmed ? 1.1 : 1,
               }}
             >
               <h2
                 className="text-5xl font-bold tracking-wider"
-                style={{ color: COLORS.right.text }}
+                style={{ color: COLORS.uwong.text }}
               >
-                {PLAYERS.right.name}
+                {PLAYERS.uwong.name}
               </h2>
-              {selected === "right" && (
+              {selected === "uwong" && !confirmed && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <Button variant="secondary" className="px-8 py-2 text-xl">
+                  <Button
+                    variant="secondary"
+                    className="px-8 py-2 text-xl"
+                    onClick={handleConfirm}
+                  >
                     Select
                   </Button>
+                </motion.div>
+              )}
+              {confirmed && selected === "macan" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex flex-col items-center gap-4"
+                >
+                  <h2 className="text-3xl font-bold">Minimax Depth</h2>
+                  <input
+                    type="range"
+                    min={minDepth}
+                    max={maxDepth}
+                    value={depth}
+                    onChange={(e) => setDepth(parseInt(e.target.value))}
+                    className="w-64"
+                  />
+                  <span className="text-xl">{depth}</span>
+                  <div className="flex gap-4">
+                    <Button
+                      variant="secondary"
+                      className="px-8 py-2 text-xl"
+                      onClick={handleCancel}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      className="px-8 py-2 text-xl"
+                      onClick={handleOk}
+                    >
+                      OK
+                    </Button>
+                  </div>
                 </motion.div>
               )}
             </motion.div>
