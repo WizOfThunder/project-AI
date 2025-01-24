@@ -1,4 +1,3 @@
-// src/utils/sound.js
 const sounds = {
   playerUwongWin: new Audio("/assets/sound/player_UwongWin.mp3"),
   playerMacanWin: new Audio("/assets/sound/playerMacanWin.mp3"),

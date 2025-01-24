@@ -41,8 +41,6 @@ export const GameBoard = ({ onReset }) => {
   const [aiDepth, setAiDepth] = useState(3);
   const [playerSide, setPlayerSide] = useState("uwong");
 
-  const [isAiMove, setIsAiMove] = useState(false);
-
   const router = useRouter();
 
   // Hightlight valid squares for first Uwong placement

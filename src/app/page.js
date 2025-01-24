@@ -9,7 +9,7 @@ export default function StartMenu() {
   const router = useRouter();
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [hasSavedGame, setHasSavedGame] = useState(false);
-  const { isSoundEnabled, setIsSoundEnabled } = useContext(SoundContext); // Ambil state dan fungsi dari context
+  // const { isSoundEnabled, setIsSoundEnabled } = useContext(SoundContext);
 
   // Cek apakah ada game yang tersimpan
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function StartMenu() {
   }, []);
 
   const handlePlay = () => {
-    setIsSoundEnabled(true);
+    // setIsSoundEnabled(true);
     if (hasSavedGame) {
       setShowResumeDialog(true);
     } else {
@@ -38,7 +38,7 @@ export default function StartMenu() {
   };
 
   const handleLeaderboard = () => {
-    setIsSoundEnabled(true);
+    // setIsSoundEnabled(true);
     router.push("/history");
   };
 
